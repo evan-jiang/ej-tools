@@ -13,7 +13,7 @@ public class JsonWeb {
     @ResponseBody()
     public Object format(String params){
         try {
-            return new StringResult().genSuccess(JSON.toJSONString(JSON.parseObject(params),true));
+            return new StringResult().genSuccess(JSON.toJSONString(JSON.parse(params),true));
         } catch (Exception e) {
             log.error("JSON格式化异常",e);
             return new StringResult().genFail(e.getMessage());
