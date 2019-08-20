@@ -3,6 +3,7 @@ package com.ej.tools.web;
 import com.alibaba.fastjson.JSON;
 import com.ej.tools.annotation.ToolsMethod;
 import com.ej.tools.annotation.ToolsParams;
+import com.ej.tools.constants.EJConstants;
 import com.ej.tools.dto.StringResult;
 import com.ej.tools.utils.EjUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -33,13 +34,13 @@ public class HelpWeb {
                     ToolsMethod toolsMethod = method.getAnnotation(ToolsMethod.class);
                     Map<String, Object> map = new LinkedHashMap<>();
                     map.put("name", toolsMethod.value());
-                    String temp = "%s %s(%s)";
+                    String temp = "%s %s.%s(%s)";
                     String returnType = method.getReturnType().getName();
                     String methodName = method.getName();
                     List<String> show = Arrays.asList(method.getParameters()).stream()
                             .map(parameter -> parameter.getType().getTypeName() + " " + parameter.getName())
                             .collect(Collectors.toList());
-                    map.put("method", String.format(temp, returnType, methodName, String.join(",", show)));
+                    map.put("method", String.format(temp, returnType, EJConstants.EJUTILS,methodName, String.join(",", show)));
                     final Map<String,Object> info = new LinkedHashMap();
                     Arrays.asList(method.getParameters()).stream().forEach(parameter -> {
                         ToolsParams toolsParams = parameter.getAnnotation(ToolsParams.class);

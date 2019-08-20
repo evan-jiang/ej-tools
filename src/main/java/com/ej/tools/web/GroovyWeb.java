@@ -1,6 +1,7 @@
 package com.ej.tools.web;
 
 import com.alibaba.fastjson.JSON;
+import com.ej.tools.constants.EJConstants;
 import com.ej.tools.dto.StringResult;
 import com.ej.tools.utils.EjUtils;
 import groovy.lang.Binding;
@@ -19,9 +20,6 @@ import javax.annotation.Resource;
 @Slf4j
 public class GroovyWeb {
 
-    private static final String PARAMS = "params";
-    private static final String EJUTILS = "utils";
-
     @Resource
     private EjUtils ejUtils;
 
@@ -36,8 +34,8 @@ public class GroovyWeb {
         }
         try {
             Binding groovyBinding = new Binding();
-            groovyBinding.setVariable(PARAMS, obj);
-            groovyBinding.setVariable(EJUTILS, ejUtils);
+            groovyBinding.setVariable(EJConstants.PARAMS, obj);
+            groovyBinding.setVariable(EJConstants.EJUTILS, ejUtils);
             GroovyShell groovyShell = new GroovyShell(groovyBinding);
             Script spt = groovyShell.parse(script);
             Object object = spt.run();
