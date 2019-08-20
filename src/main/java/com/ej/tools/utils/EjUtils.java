@@ -95,6 +95,31 @@ public class EjUtils {
         throw new RuntimeException("不支持该数据类型[" + params.getClass().getName() + "]的求和！");
     }
 
+    @ToolsMethod("提炼")
+    public JSONArray refine(@ToolsParams("待提炼数据") Object params, @ToolsParams("需要提炼的字段名列表") String... fieldNames){
+        JSONArray newArray = new JSONArray();
+        if(fieldNames == null || fieldNames.length == 0){
+            return newArray;
+        }
+        if (params instanceof JSONArray) {
+            JSONArray array = (JSONArray) params;
+            for(int idx=0;idx<array.size();idx++){
+                if(fieldNames.length == 1){
+                    String fieldName = fieldNames[0];
+                    newArray.add(array.getJSONObject(idx).get(fieldName));
+                }else{
+                    JSONObject jobj = new JSONObject();
+                    for(String fieldName : fieldNames){
+                        jobj.put(fieldName,array.getJSONObject(idx).get(fieldName));
+                    }
+                    newArray.add(jobj);
+                }
+            }
+            return newArray;
+        }
+        throw new RuntimeException("不支持该数据类型[" + params.getClass().getName() + "]的提炼！");
+    }
+
     private boolean contains(JSONObject params, String fieldName, String value) {
         String str = params.getString(fieldName);
         return str != null && str.contains(value);
