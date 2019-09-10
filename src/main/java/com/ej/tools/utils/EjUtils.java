@@ -7,8 +7,6 @@ import com.ej.tools.annotation.ToolsMethod;
 import com.ej.tools.annotation.ToolsParams;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.stream.Stream;
@@ -23,13 +21,13 @@ public class EjUtils {
             JSONArray oldArray = (JSONArray) params;
             JSONArray newArray = new JSONArray();
             Stream<Object> stream = oldArray.stream();
-            if(reverse){
+            if (reverse) {
                 stream = stream.sorted(Comparator.comparing(o ->
-                        ((JSONObject) o).getString(fieldName)
+                        (Comparable)((JSONObject) o).get(fieldName)
                 ).reversed());
-            }else{
+            } else {
                 stream = stream.sorted(Comparator.comparing(o ->
-                        ((JSONObject) o).getString(fieldName)
+                        (Comparable)((JSONObject) o).get(fieldName)
                 ));
             }
             stream.forEach(o -> {
@@ -39,6 +37,7 @@ public class EjUtils {
         }
         throw new RuntimeException("不支持该数据类型[" + params.getClass().getName() + "]的排序!");
     }
+
     @ToolsMethod("等值筛选")
     public JSONArray equal(@ToolsParams("待筛选数据") Object params, @ToolsParams("筛选字段") String fieldName, @ToolsParams("筛选所需要等于的值") String value) {
         if (params instanceof JSONArray) {
@@ -54,6 +53,7 @@ public class EjUtils {
         }
         throw new RuntimeException("不支持该数据类型[" + params.getClass().getName() + "]的数据筛选!");
     }
+
     @ToolsMethod("包含值筛选")
     public JSONArray contains(@ToolsParams("待筛选数据") Object params, @ToolsParams("筛选字段") String fieldName, @ToolsParams("筛选所需要包含的值") String value) {
         if (value == null) {
@@ -72,6 +72,7 @@ public class EjUtils {
         }
         throw new RuntimeException("不支持该数据类型[" + params.getClass().getName() + "]的数据筛选！");
     }
+
     @ToolsMethod("统计数据量")
     public Integer count(@ToolsParams("待统计数据") Object params) {
         if (params instanceof JSONArray) {
@@ -96,21 +97,21 @@ public class EjUtils {
     }
 
     @ToolsMethod("提炼")
-    public JSONArray refine(@ToolsParams("待提炼数据") Object params, @ToolsParams("需要提炼的字段名列表") String... fieldNames){
+    public JSONArray refine(@ToolsParams("待提炼数据") Object params, @ToolsParams("需要提炼的字段名列表") String... fieldNames) {
         JSONArray newArray = new JSONArray();
-        if(fieldNames == null || fieldNames.length == 0){
+        if (fieldNames == null || fieldNames.length == 0) {
             return newArray;
         }
         if (params instanceof JSONArray) {
             JSONArray array = (JSONArray) params;
-            for(int idx=0;idx<array.size();idx++){
-                if(fieldNames.length == 1){
+            for (int idx = 0; idx < array.size(); idx++) {
+                if (fieldNames.length == 1) {
                     String fieldName = fieldNames[0];
                     newArray.add(array.getJSONObject(idx).get(fieldName));
-                }else{
+                } else {
                     JSONObject jobj = new JSONObject();
-                    for(String fieldName : fieldNames){
-                        jobj.put(fieldName,array.getJSONObject(idx).get(fieldName));
+                    for (String fieldName : fieldNames) {
+                        jobj.put(fieldName, array.getJSONObject(idx).get(fieldName));
                     }
                     newArray.add(jobj);
                 }
