@@ -5,15 +5,44 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.ej.tools.annotation.ToolsMethod;
 import com.ej.tools.annotation.ToolsParams;
+import com.ej.tools.constants.EJConstants;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
-import java.util.Comparator;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
 @Component
 public class EjUtils {
+    public static final List<Map<String, Object>> HELP_CACHE;
+
+    static {
+        List<Method> methods = Arrays.asList(EjUtils.class.getDeclaredMethods());
+        HELP_CACHE = methods.stream()
+                .filter(method -> method.getAnnotation(ToolsMethod.class) != null)
+                .map(method -> {
+                    ToolsMethod toolsMethod = method.getAnnotation(ToolsMethod.class);
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("name", toolsMethod.value());
+                    String temp = "%s %s.%s(%s)";
+                    String returnType = method.getReturnType().getName();
+                    String methodName = method.getName();
+                    List<String> show = Arrays.asList(method.getParameters()).stream()
+                            .map(parameter -> parameter.getType().getTypeName() + " " + parameter.getName())
+                            .collect(Collectors.toList());
+                    map.put("method", String.format(temp, returnType, EJConstants.EJUTILS, methodName, String.join(",", show)));
+                    final Map<String, Object> info = new LinkedHashMap();
+                    Arrays.asList(method.getParameters()).stream().forEach(parameter -> {
+                        ToolsParams toolsParams = parameter.getAnnotation(ToolsParams.class);
+                        info.put(parameter.getName(), toolsParams.value());
+                    });
+                    map.put("paramsInfo", info);
+                    return map;
+                }).collect(Collectors.toList());
+    }
 
     @ToolsMethod("排序")
     public JSONArray sort(@ToolsParams("待排序对象") Object params, @ToolsParams("排序字段") String fieldName, @ToolsParams("是否倒序[true:倒序;false:正序]") boolean reverse) {
@@ -23,11 +52,11 @@ public class EjUtils {
             Stream<Object> stream = oldArray.stream();
             if (reverse) {
                 stream = stream.sorted(Comparator.comparing(o ->
-                        (Comparable)((JSONObject) o).get(fieldName)
+                        (Comparable) ((JSONObject) o).get(fieldName)
                 ).reversed());
             } else {
                 stream = stream.sorted(Comparator.comparing(o ->
-                        (Comparable)((JSONObject) o).get(fieldName)
+                        (Comparable) ((JSONObject) o).get(fieldName)
                 ));
             }
             stream.forEach(o -> {
