@@ -44,6 +44,28 @@ public class EjUtils {
                 }).collect(Collectors.toList());
     }
 
+    @ToolsMethod("分组")
+    public JSONObject group(@ToolsParams("待分组对象") Object params, @ToolsParams("分组字段") String fieldName){
+        if (params instanceof JSONArray) {
+            JSONArray oldArray = (JSONArray) params;
+            JSONObject jobj = new JSONObject();
+            for (int idx = 0; idx < oldArray.size(); idx++) {
+                JSONObject jsonObject = oldArray.getJSONObject(idx);
+                String value = jsonObject.getString(fieldName);
+                jsonObject.remove(fieldName);
+                if(jobj.containsKey(value)){
+                    jobj.getJSONArray(value).add(jsonObject);
+                }else{
+                    JSONArray jsonArray = new JSONArray();
+                    jsonArray.add(jsonObject);
+                    jobj.put(value,jsonArray);
+                }
+            }
+            return jobj;
+        }
+        throw new RuntimeException("不支持该数据类型[" + params.getClass().getName() + "]的分组!");
+    }
+
     @ToolsMethod("排序")
     public JSONArray sort(@ToolsParams("待排序对象") Object params, @ToolsParams("排序字段") String fieldName, @ToolsParams("是否倒序[true:倒序;false:正序]") boolean reverse) {
         if (params instanceof JSONArray) {
