@@ -45,21 +45,37 @@ public class EjUtils {
     }
 
     @ToolsMethod("分组")
-    public JSONObject group(@ToolsParams("待分组对象") Object params, @ToolsParams("分组字段") String fieldName){
+    public JSONObject group(@ToolsParams("待分组对象") Object params, @ToolsParams("分组字段") String fieldName, @ToolsParams("分组后需要显示字段名列表") String... showFieldNames) {
         if (params instanceof JSONArray) {
             JSONArray oldArray = (JSONArray) params;
             JSONObject jobj = new JSONObject();
             for (int idx = 0; idx < oldArray.size(); idx++) {
-                JSONObject jsonObject = oldArray.getJSONObject(idx);
-                String value = jsonObject.getString(fieldName);
-                jsonObject.remove(fieldName);
-                if(jobj.containsKey(value)){
-                    jobj.getJSONArray(value).add(jsonObject);
-                }else{
-                    JSONArray jsonArray = new JSONArray();
-                    jsonArray.add(jsonObject);
-                    jobj.put(value,jsonArray);
+                Object newValue = null;
+                JSONObject oldJobj = oldArray.getJSONObject(idx);
+                if (showFieldNames != null && showFieldNames.length == 1) {
+                    newValue = oldJobj.getObject(showFieldNames[0], Object.class);
+
+                } else {
+                    JSONObject newJobj = new JSONObject();
+                    if (showFieldNames == null || showFieldNames.length == 0) {
+                        newJobj.putAll(oldJobj);
+                        newJobj.remove(fieldName);
+                    } else if (showFieldNames.length > 1) {
+                        for (String fn : showFieldNames) {
+                            newJobj.put(fn, oldJobj.getObject(fn, Object.class));
+                        }
+                    }
+                    newValue = newJobj;
                 }
+                String value = oldJobj.getString(fieldName);
+                if (jobj.containsKey(value)) {
+                    jobj.getJSONArray(value).add(newValue);
+                } else {
+                    JSONArray jsonArray = new JSONArray();
+                    jsonArray.add(newValue);
+                    jobj.put(value, jsonArray);
+                }
+
             }
             return jobj;
         }
