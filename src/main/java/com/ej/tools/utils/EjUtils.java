@@ -18,6 +18,7 @@ import java.util.stream.Stream;
 @Component
 public class EjUtils {
     public static final List<Map<String, Object>> HELP_CACHE;
+    private static final String SPLIT_STR = "######";
 
     static {
         List<Method> methods = Arrays.asList(EjUtils.class.getDeclaredMethods());
@@ -42,6 +43,50 @@ public class EjUtils {
                     map.put("paramsInfo", info);
                     return map;
                 }).collect(Collectors.toList());
+    }
+
+    @ToolsMethod("去除重复")
+    public JSONArray distinct(@ToolsParams("待去重数据") Object params, @ToolsParams("需要去重的字段名列表") String... fieldNames){
+        if(fieldNames == null || fieldNames.length == 0){
+            throw new RuntimeException("需要去重的字段名列表不能为空!");
+        }
+        if (params instanceof JSONArray) {
+            JSONArray oldArray = (JSONArray) params;
+            JSONArray newArray = new JSONArray();
+            Map<String,Object> distinct = new LinkedHashMap<>();
+            for (int idx = 0; idx < oldArray.size(); idx++) {
+                JSONObject oldJobj = oldArray.getJSONObject(idx);
+                JSONObject newJobj = new JSONObject();
+                Object newValue = null;
+                List<String> vs = new ArrayList<>();
+                for(String field : fieldNames){
+                    Object fieldValue = oldJobj.get(field);
+                    if(fieldValue == null || fieldValue instanceof String || fieldValue instanceof Number){
+                        vs.add(fieldValue == null ? null : fieldValue.toString());
+                        if(fieldNames.length == 1){
+                            newValue = fieldValue;
+                        }else{
+                            newJobj.put(field,fieldValue);
+                        }
+                    }else{
+                        throw new RuntimeException("不支持对字符串或数字以外的类型去重!");
+                    }
+                }
+                String key = String.join(SPLIT_STR,vs);
+                if(!distinct.containsKey(key)){
+                    if(fieldNames.length == 1){
+                        distinct.put(key,newValue);
+                    }else{
+                        distinct.put(key,newJobj);
+                    }
+                }
+            }
+            for(Map.Entry<String,Object> e : distinct.entrySet()){
+                newArray.add(e.getValue());
+            }
+            return newArray;
+        }
+        throw new RuntimeException("不支持该数据类型[" + params.getClass().getName() + "]的去重!");
     }
 
     @ToolsMethod("分组")
