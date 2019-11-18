@@ -1,12 +1,14 @@
 package com.ej.tools.utils;
 
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.ej.tools.annotation.ToolsMethod;
 import com.ej.tools.annotation.ToolsParams;
 import com.ej.tools.constants.EJConstants;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
@@ -46,42 +48,42 @@ public class EjUtils {
     }
 
     @ToolsMethod("去除重复")
-    public JSONArray distinct(@ToolsParams("待去重数据") Object params, @ToolsParams("需要去重的字段名列表") String... fieldNames){
-        if(fieldNames == null || fieldNames.length == 0){
+    public JSONArray distinct(@ToolsParams("待去重数据") Object params, @ToolsParams("需要去重的字段名列表") String... fieldNames) {
+        if (fieldNames == null || fieldNames.length == 0) {
             throw new RuntimeException("需要去重的字段名列表不能为空!");
         }
         if (params instanceof JSONArray) {
             JSONArray oldArray = (JSONArray) params;
             JSONArray newArray = new JSONArray();
-            Map<String,Object> distinct = new LinkedHashMap<>();
+            Map<String, Object> distinct = new LinkedHashMap<>();
             for (int idx = 0; idx < oldArray.size(); idx++) {
                 JSONObject oldJobj = oldArray.getJSONObject(idx);
                 JSONObject newJobj = new JSONObject();
                 Object newValue = null;
                 List<String> vs = new ArrayList<>();
-                for(String field : fieldNames){
+                for (String field : fieldNames) {
                     Object fieldValue = oldJobj.get(field);
-                    if(fieldValue == null || fieldValue instanceof String || fieldValue instanceof Number){
+                    if (fieldValue == null || fieldValue instanceof String || fieldValue instanceof Number) {
                         vs.add(fieldValue == null ? null : fieldValue.toString());
-                        if(fieldNames.length == 1){
+                        if (fieldNames.length == 1) {
                             newValue = fieldValue;
-                        }else{
-                            newJobj.put(field,fieldValue);
+                        } else {
+                            newJobj.put(field, fieldValue);
                         }
-                    }else{
+                    } else {
                         throw new RuntimeException("不支持对字符串或数字以外的类型去重!");
                     }
                 }
-                String key = String.join(SPLIT_STR,vs);
-                if(!distinct.containsKey(key)){
-                    if(fieldNames.length == 1){
-                        distinct.put(key,newValue);
-                    }else{
-                        distinct.put(key,newJobj);
+                String key = String.join(SPLIT_STR, vs);
+                if (!distinct.containsKey(key)) {
+                    if (fieldNames.length == 1) {
+                        distinct.put(key, newValue);
+                    } else {
+                        distinct.put(key, newJobj);
                     }
                 }
             }
-            for(Map.Entry<String,Object> e : distinct.entrySet()){
+            for (Map.Entry<String, Object> e : distinct.entrySet()) {
                 newArray.add(e.getValue());
             }
             return newArray;
@@ -233,6 +235,41 @@ public class EjUtils {
         throw new RuntimeException("不支持该数据类型[" + params.getClass().getName() + "]的提炼！");
     }
 
+    @ToolsMethod("转化成MarkDown")
+    public static String toMD(@ToolsParams("待转数据") Object params) {
+        if (params instanceof JSONArray) {
+            StringBuilder sb = new StringBuilder();
+            JSONArray array = (JSONArray) params;
+            Map<String,Boolean> head = new TreeMap<>();
+            int size = array.size();
+            for(int idx=0;idx<size;idx++){
+                JSONObject jsonObject = array.getJSONObject(idx);
+                for(Map.Entry<String,Object> e : jsonObject.entrySet()){
+                    head.put(e.getKey(),Boolean.TRUE);
+                }
+            }
+            List<String> headList = new ArrayList<>();
+            List<String> headSplit = new ArrayList<>();
+            for(Map.Entry<String,Boolean> e : head.entrySet()){
+                headList.add(e.getKey());
+                headSplit.add("---");
+            }
+            sb.append("| ").append(String.join(" | ",headList)).append(" |\n");
+            sb.append("| ").append(String.join(" | ",headSplit)).append(" |\n");
+            for(int idx=0;idx<size;idx++){
+                List<String> row = new ArrayList<>();
+                JSONObject jsonObject = array.getJSONObject(idx);
+                for(Map.Entry<String,Boolean> e : head.entrySet()){
+                    String data = jsonObject.getString(e.getKey());
+                    row.add(StringUtils.isEmpty(data) ? "" : data);
+                }
+                sb.append("| ").append(String.join(" | ",row)).append(" |\n");
+            }
+            return sb.toString();
+        }
+        throw new RuntimeException("不支持该数据类型[" + params.getClass().getName() + "]的转化！");
+    }
+
     private boolean contains(JSONObject params, String fieldName, String value) {
         String str = params.getString(fieldName);
         return str != null && str.contains(value);
@@ -254,4 +291,5 @@ public class EjUtils {
         }
         return sum;
     }
+
 }
