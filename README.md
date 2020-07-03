@@ -8,21 +8,21 @@
 
 ### 直接功能
 
-![](imgs\1.png)
+![](imgs/1.png)
 
 - JSON格式化
 
-![](imgs\2.png)
+![](imgs/2.png)
 
 - URL编码
 - URL解码
 - 查看历史执行脚本
 
-![](imgs\3.png)
+![](imgs/3.png)
 
 - 查看帮助文档
 
-![](imgs\4.png)
+![](imgs/4.png)
 
 
 
@@ -42,23 +42,23 @@
 
 - 等值筛选
 
-![1593743050350](imgs/equal.png)
+![](imgs/equal.png)
 
 - 数据精炼
 
-![](imgs\refine.png)
+![](imgs/refine.png)
 
 - 去重
 
-![](imgs\distinct.png)
+![](imgs/distinct.png)
 
 - 转化成MD(如上表格就是如此生成)
 
-![1593742773215](imgs\md.png)
+![](imgs/md.png)
 
 ### 在线编码
 
-![](imgs\code.png)
+![](imgs/code.png)
 
 - 参数
 
