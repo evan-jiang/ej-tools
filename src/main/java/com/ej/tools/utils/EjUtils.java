@@ -1,6 +1,7 @@
 package com.ej.tools.utils;
 
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.ej.tools.annotation.ToolsMethod;
@@ -235,38 +236,86 @@ public class EjUtils {
     }
 
     @ToolsMethod("转化成MarkDown")
-    public static String toMD(@ToolsParams("待转数据") Object params) {
+    public String toMD(@ToolsParams("待转数据") Object params) {
         if (params instanceof JSONArray) {
             StringBuilder sb = new StringBuilder();
             JSONArray array = (JSONArray) params;
-            Map<String,Boolean> head = new TreeMap<>();
+            Map<String, Boolean> head = new TreeMap<>();
             int size = array.size();
-            for(int idx=0;idx<size;idx++){
+            for (int idx = 0; idx < size; idx++) {
                 JSONObject jsonObject = array.getJSONObject(idx);
-                for(Map.Entry<String,Object> e : jsonObject.entrySet()){
-                    head.put(e.getKey(),Boolean.TRUE);
+                for (Map.Entry<String, Object> e : jsonObject.entrySet()) {
+                    head.put(e.getKey(), Boolean.TRUE);
                 }
             }
             List<String> headList = new ArrayList<>();
             List<String> headSplit = new ArrayList<>();
-            for(Map.Entry<String,Boolean> e : head.entrySet()){
+            for (Map.Entry<String, Boolean> e : head.entrySet()) {
                 headList.add(e.getKey());
                 headSplit.add("---");
             }
-            sb.append("| ").append(String.join(" | ",headList)).append(" |\n");
-            sb.append("| ").append(String.join(" | ",headSplit)).append(" |\n");
-            for(int idx=0;idx<size;idx++){
+            sb.append("| ").append(String.join(" | ", headList)).append(" |\n");
+            sb.append("| ").append(String.join(" | ", headSplit)).append(" |\n");
+            for (int idx = 0; idx < size; idx++) {
                 List<String> row = new ArrayList<>();
                 JSONObject jsonObject = array.getJSONObject(idx);
-                for(Map.Entry<String,Boolean> e : head.entrySet()){
+                for (Map.Entry<String, Boolean> e : head.entrySet()) {
                     String data = jsonObject.getString(e.getKey());
                     row.add(StringUtils.isEmpty(data) ? "" : data);
                 }
-                sb.append("| ").append(String.join(" | ",row)).append(" |\n");
+                sb.append("| ").append(String.join(" | ", row)).append(" |\n");
             }
             return sb.toString();
         }
         throw new RuntimeException("不支持该数据类型[" + params.getClass().getName() + "]的转化！");
+    }
+
+    private static final String SQL_TEMP = "insert into %s \n(`%s`)\nvalues \n%s;";
+    private static final String SQL_KEY_SPLIT_TEMP = "`,`";
+    private static final String SQL_VALUE_TEMP = "'%s'";
+    private static final String SQL_VALUES_TEMP = "(%s)";
+    private static final String SQL_SPLIT = ",";
+    private static final String SQL_SPLIT_N = ",\n";
+
+    @ToolsMethod("转化成SQL")
+    private String toSQL(@ToolsParams("待转数据") Object params,
+                         @ToolsParams("数据表名") String tableName,
+                         @ToolsParams("自增字段名") String autoIncrementKey,
+                         @ToolsParams("自增字段起始值") Long autoIncrementStartValue) {
+        Set<String> keys = keys(params);
+        if (keys == null || keys.isEmpty()) {
+            return null;
+        }
+        if (autoIncrementKey != null && (autoIncrementKey = autoIncrementKey.trim()).length() > 0 && !keys.contains(autoIncrementKey)) {
+            keys.add(autoIncrementKey);
+            if (autoIncrementStartValue == null) {
+                autoIncrementStartValue = 0L;
+            }
+        }
+        JSONArray jsonArray = null;
+        if (params instanceof JSONObject) {
+            jsonArray = new JSONArray();
+            jsonArray.add(params);
+        } else if (params instanceof JSONArray) {
+            jsonArray = (JSONArray) params;
+        } else {
+            throw new RuntimeException("不支持该数据类型[" + params.getClass().getName() + "]的转化！");
+        }
+        List<String> vs = new ArrayList<>(jsonArray.size());
+        for (int idx = 0; idx < jsonArray.size(); idx++) {
+            JSONObject jsonObject = jsonArray.getJSONObject(idx);
+            List<String> singleValues = new ArrayList<>(keys.size());
+            for (String key : keys) {
+                if (key.equals(autoIncrementKey)) {
+                    singleValues.add(String.valueOf(autoIncrementStartValue++));
+                } else {
+                    singleValues.add(jsonObject.get(key) == null ? null : String.format(SQL_VALUE_TEMP, jsonObject.get(key).toString()));
+                }
+            }
+            String value = String.join(SQL_SPLIT, singleValues);
+            vs.add(String.format(SQL_VALUES_TEMP, value));
+        }
+        return String.format(SQL_TEMP, tableName, String.join(SQL_KEY_SPLIT_TEMP, keys), String.join(SQL_SPLIT_N, vs));
     }
 
     private boolean contains(JSONObject params, String fieldName, String value) {
@@ -291,4 +340,26 @@ public class EjUtils {
         return sum;
     }
 
+    private Set<String> keys(Object params) {
+        Set<String> keys = null;
+        if (params instanceof JSONObject) {
+            JSONObject jsonObject = (JSONObject) params;
+            if (keys == null) {
+                keys = new TreeSet<>();
+            }
+            keys.addAll(jsonObject.keySet());
+        } else if (params instanceof JSONArray) {
+            JSONArray jsonArray = (JSONArray) params;
+            for (int idx = 0; idx < jsonArray.size(); idx++) {
+                Set<String> keySet = jsonArray.getJSONObject(idx).keySet();
+                if (keys == null) {
+                    keys = new TreeSet<>();
+                }
+                keys.addAll(keySet);
+            }
+        } else {
+            throw new RuntimeException("不支持该数据类型[" + params.getClass().getName() + "]的转化！");
+        }
+        return keys;
+    }
 }
