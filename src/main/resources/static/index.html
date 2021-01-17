@@ -1,0 +1,309 @@
+﻿<html>
+<head>
+    <title>数据分析工具</title>
+    <link rel="icon" type="image/x-icon" href="img/favicon.ico"/>
+    <script type="text/javascript" charset="utf8" src="js/jquery-1.9.1.min.js"></script>
+    <script>
+        var R = /^\!(\d+)$/
+        var SPLIT = "#_#_#_#_#_#"
+        var BASE_URL = '';
+        var JSON_FORMAT_URL = BASE_URL + '/json/format';
+        var HELP_LIST_URL = BASE_URL + '/help/list';
+        var URL_ENCODE_URL = BASE_URL + '/url/encode';
+        var URL_DECODE_URL = BASE_URL + '/url/decode';
+        var GROOVY_EXECUTE_URL = BASE_URL + '/groovy/execute';
+        document.onkeydown=function(e){
+            event=event||window.event;
+            var currKey=0, e=e||event||window.event;
+            currKey = e.keyCode||e.which||e.charCode;
+            //Enter
+            if((e.ctrlKey||e.metaKey) && currKey == 13){
+                groovyExecute();
+                return false;
+            }
+            //D
+            if((e.ctrlKey||e.metaKey) && currKey == 68){
+                urlDecode();
+                return false;
+            }
+            //E
+            if((e.ctrlKey||e.metaKey) && currKey == 69){
+                urlEncode();
+                return false;
+            }
+            //F
+            if((e.ctrlKey||e.metaKey) && currKey == 70){
+                jsonFormat();
+                return false;
+            }
+            //H
+            if((e.ctrlKey||e.metaKey) && currKey == 72){
+                helpList();
+                return false;
+            }
+            //L
+            if((e.ctrlKey||e.metaKey) && currKey == 76){
+                historyList();
+                return false;
+            }
+            return true;
+        }
+
+        function post(url,data){
+            $("#result").val("");
+            $.ajax({
+                type: "POST",
+                url: url,
+                //contentType: "application/json",
+                dataType: "json",
+                data: data,
+                success: function (jsonResult) {
+                    $("#result").val(jsonResult.result)
+                }
+            });
+        }
+
+        function helpList(){
+            var data = {}
+            post(HELP_LIST_URL,data)
+        }
+
+        function jsonFormat(){
+            var data = {"params":$("#params").val()}
+            post(JSON_FORMAT_URL,data)
+        }
+
+        function urlEncode(){
+            var data = {"params":$("#params").val()}
+            post(URL_ENCODE_URL,data)
+        }
+
+        function urlDecode(){
+            var data = {"params":$("#params").val()}
+            post(URL_DECODE_URL,data)
+        }
+
+        function groovyExecute(){
+            var sc = $("#script").val();
+            R.exec(sc);
+            var n = RegExp.$1;
+            if(n != ''){
+                var idx = Number(n)
+                $("#script").val(pull(idx));
+                return;
+            }
+            var data = {"params":$("#params").val(),"script":sc}
+            post(GROOVY_EXECUTE_URL,data)
+            if(data.script != ''){
+                push(data.script)
+            }
+        }
+        function historyList(){
+            $("#result").val(getLink().show());
+        }
+
+        function Node(data){
+            this.data = data;
+            this.next = null;
+            this.previous = null;
+        }
+        function Link(){
+            this.root = null;
+        }
+        Link.prototype={
+            get:function(idx){
+                var cNode = this.root;
+                var i = 1;
+                while(cNode != null){
+                    if(i == idx){
+                        return cNode.data;
+                    }
+                    i = i + 1;
+                    cNode = cNode.next;
+                }
+                return "";
+            },
+            find:function(data){
+                var cNode = this.root;
+                while(cNode != null && cNode.data != data){
+                    cNode = cNode.next;
+                }
+                return cNode;
+            },
+            insert:function(data){
+                var cNode = this.find(data);
+                if(cNode == null){
+                    cNode = new Node(data);
+                    cNode.next = this.root;
+                    if(this.root != null){
+                        this.root.previous = cNode;
+                    }
+                    this.root = cNode;
+                }else if(cNode != this.root){
+                    var cp = cNode.previous;
+                    var cn = cNode.next;
+                    if (cp != null) {
+                        cp.next = cn;
+                    }
+                    if (cn != null) {
+                        cn.previous = cp;
+                    }
+                    cNode.previous = null;
+                    cNode.next = this.root;
+                    if (this.root != null) {
+                        this.root.previous = cNode;
+                    }
+                    this.root = cNode;
+                }
+            },
+            toString:function(){
+                var str = "";
+                var cNode = this.root;
+                while(cNode != null){
+                    str += SPLIT + cNode.data
+                    cNode = cNode.next;
+                }
+                return str.substring(SPLIT.length);
+            },
+            parse:function(str){
+                var arr = str.split(SPLIT);
+                var idx = arr.length - 1;
+                for(;idx>=0;idx=idx-1){
+                    this.insert(arr[idx]);
+                }
+            },
+            show:function(){
+                var idx = 0;
+                var str = "";
+                var cNode = this.root;
+                while(cNode != null){
+                    idx = idx + 1;
+                    str += "【!"+idx+"】"+cNode.data +"\n"
+                    cNode = cNode.next;
+                }
+                return str;
+            }
+
+        }
+        function getLink(){
+            var link = new Link();
+            if(localStorage.getItem("history")){
+                link.parse(localStorage.getItem("history"));
+            }
+            return link;
+        }
+        function push(data){
+            var link = getLink();
+            link.insert(data);
+            localStorage.setItem("history",link.toString());
+        }
+        function pull(idx){
+            var link = getLink();
+            return link.get(idx)
+        }
+
+    </script>
+    <style>
+
+        body,p{margin: 0;}
+        .parentWrap{
+            overflow: hidden;
+        }
+        .parent{
+            margin-right: 20px;
+            margin-left:20px;
+            overflow: hidden;
+        }
+        .child_1{
+            float: left;
+            height: 200px;
+            width: 100%;
+            box-sizing: border-box;
+            background-clip: content-box;
+            padding-top:-20px;
+        }
+        .child_2_h{
+            float: left;
+            width: 50%;
+            padding-right: 20px;
+            box-sizing: border-box;
+            background-clip: content-box;
+        }
+        .child_2_c{
+            float: left;
+            height: 370px;
+            width: 50%;
+            box-sizing: border-box;
+            background-clip: content-box;
+        }
+        .child_2_t{
+            float: left;
+            height: 200px;
+            width: 50%;
+            box-sizing: border-box;
+            background-clip: content-box;
+        }
+        .button_c{
+            background-color:#44546a;
+            color:#fff;
+            margin-left: 20px;
+            margin-top:5px;
+            border:none;
+        }
+
+        .input::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        .input::-webkit-scrollbar-thumb {
+            border-radius: 3px;
+            -moz-border-radius: 3px;
+            -webkit-border-radius: 3px;
+            background-color: #44546a;
+        }
+        .input::-webkit-scrollbar-track {
+            background-color: transparent;
+        }
+    </style>
+</head>
+<body style="background-color:#e0e0e0;">
+
+<div class="parentWrap">
+    <div class="parent">
+        <div class="child_2_h" style="width:20%;">
+            <img src="img/icon.png" width="80" style="margin-left:2px;margin-top:2px;"/>
+        </div>
+        <div class="child_2_h" align="right" style="padding-right:0px;width:80%;">
+            <!--<button onclick='' class="button_c">JSON格式化<br/>【Ctrl+F】</button>
+			<button onclick='' class="button_c">URL编码<br/>【Ctrl+E】</button>
+			<button onclick='' class="button_c">URL解密<br/>【Ctrl+D】</button>
+			<button onclick='' class="button_c">历史脚本<br/>【Ctrl+L】</button>
+			<button onclick='' class="button_c">帮助文档<br/>【Ctrl+H】</button>-->
+            <img src="img/f.png" onclick='jsonFormat()' style="margin-left:10px;cursor: pointer;"/>
+            <img src="img/e.png" onclick='urlEncode()' style="margin-left:10px;cursor: pointer;"/>
+            <img src="img/d.png" onclick='urlDecode()' style="margin-left:10px;cursor: pointer;"/>
+            <img src="img/l.png" onclick='historyList()' style="margin-left:10px;cursor: pointer;"/>
+            <img src="img/h.png" onclick='helpList()' style="margin-left:10px;cursor: pointer;"/>
+        </div>
+    </div>
+</div>
+<div class="parentWrap" >
+    <div class="parent" style="border: 1px solid;border-bottom: none;border-color:#44546a;">
+        <div class="child_2_c">
+            <textarea placeholder='输入参数...' id='params' class="input" style='width:100%;height:100%;resize: none;border-style: none;'></textarea>
+        </div>
+        <div class="child_2_c">
+            <textarea placeholder='响应参数...' id='result' class="input" style='width:100%;height:100%;resize: none;border: none;border-left: 1px solid;border-color:#44546a;' readonly></textarea>
+        </div>
+    </div>
+</div>
+<div class="parentWrap">
+    <div class="parent" style="border: 1px solid;border-color:#44546a;">
+        <div class="child_1">
+            <textarea placeholder='输入Groovy脚本...' id='script' class="input" style='width:80%;height:100%;resize: none;float: left;border: none;'></textarea>
+            <button onclick='groovyExecute()' style="width:20%;height:100%;background-color:#44546a;color:#fff;border:none;cursor: pointer;">执行脚本<br/>【Ctrl+Enter】</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
