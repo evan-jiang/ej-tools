@@ -202,6 +202,23 @@
             return link.get(idx)
         }
 
+        function resetWindow(){
+            var h = $(window).height();
+            var hh = $(".child_2_h").height();
+            var ht = $(".child_1").height();
+            var hn = 50;
+            var hb = h - hh - ht - hn;
+            if (hb <= 370){
+                hb = 370;
+            }
+            $(".child_2_c").css("height",hb+"px");
+        }
+        $(window).resize(function () {
+            resetWindow();
+        });
+        $().ready(function(){
+            resetWindow();
+        });
     </script>
     <style>
 
@@ -216,7 +233,7 @@
         }
         .child_1{
             float: left;
-            height: 200px;
+            height: 300px;
             width: 100%;
             box-sizing: border-box;
             background-clip: content-box;

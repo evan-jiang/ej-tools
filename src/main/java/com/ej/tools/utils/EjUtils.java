@@ -1,7 +1,6 @@
 package com.ej.tools.utils;
 
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.ej.tools.annotation.ToolsMethod;
@@ -36,7 +35,8 @@ public class EjUtils {
                     List<String> show = Arrays.asList(method.getParameters()).stream()
                             .map(parameter -> parameter.getType().getTypeName() + " " + parameter.getName())
                             .collect(Collectors.toList());
-                    map.put("method", String.format(temp, returnType, EJConstants.EJUTILS, methodName, String.join(",", show)));
+                    map.put("method", String.format(temp, returnType, EJConstants.EJUTILS, methodName, String.join(","
+                            , show)));
                     final Map<String, Object> info = new LinkedHashMap();
                     Arrays.asList(method.getParameters()).stream().forEach(parameter -> {
                         ToolsParams toolsParams = parameter.getAnnotation(ToolsParams.class);
@@ -49,12 +49,16 @@ public class EjUtils {
 
     @ToolsMethod("去除重复")
     public JSONArray distinct(@ToolsParams("待去重数据") Object params, @ToolsParams("需要去重的字段名列表") String... fieldNames) {
-        if (fieldNames == null || fieldNames.length == 0) {
-            throw new RuntimeException("需要去重的字段名列表不能为空!");
-        }
+//        if (fieldNames == null || fieldNames.length == 0) {
+//            throw new RuntimeException("需要去重的字段名列表不能为空!");
+//        }
         if (params instanceof JSONArray) {
             JSONArray oldArray = (JSONArray) params;
             JSONArray newArray = new JSONArray();
+            if (fieldNames == null || fieldNames.length == 0) {
+                newArray.addAll(new HashSet<>(oldArray));
+                return newArray;
+            }
             Map<String, Object> distinct = new LinkedHashMap<>();
             for (int idx = 0; idx < oldArray.size(); idx++) {
                 JSONObject oldJobj = oldArray.getJSONObject(idx);
@@ -92,7 +96,8 @@ public class EjUtils {
     }
 
     @ToolsMethod("分组")
-    public JSONObject group(@ToolsParams("待分组对象") Object params, @ToolsParams("分组字段") String fieldName, @ToolsParams("分组后需要显示字段名列表") String... showFieldNames) {
+    public JSONObject group(@ToolsParams("待分组对象") Object params, @ToolsParams("分组字段") String fieldName, @ToolsParams(
+            "分组后需要显示字段名列表") String... showFieldNames) {
         if (params instanceof JSONArray) {
             JSONArray oldArray = (JSONArray) params;
             JSONObject jobj = new JSONObject();
@@ -130,7 +135,8 @@ public class EjUtils {
     }
 
     @ToolsMethod("排序")
-    public JSONArray sort(@ToolsParams("待排序对象") Object params, @ToolsParams("排序字段") String fieldName, @ToolsParams("是否倒序[true:倒序;false:正序]") boolean reverse) {
+    public JSONArray sort(@ToolsParams("待排序对象") Object params, @ToolsParams("排序字段") String fieldName, @ToolsParams(
+            "是否倒序[true:倒序;false:正序]") boolean reverse) {
         if (params instanceof JSONArray) {
             JSONArray oldArray = (JSONArray) params;
             JSONArray newArray = new JSONArray();
@@ -153,7 +159,8 @@ public class EjUtils {
     }
 
     @ToolsMethod("等值筛选")
-    public JSONArray equal(@ToolsParams("待筛选数据") Object params, @ToolsParams("筛选字段") String fieldName, @ToolsParams("筛选所需要等于的值") String value) {
+    public JSONArray equal(@ToolsParams("待筛选数据") Object params, @ToolsParams("筛选字段") String fieldName, @ToolsParams(
+            "筛选所需要等于的值") String value) {
         if (params instanceof JSONArray) {
             JSONArray oldArray = (JSONArray) params;
             JSONArray newArray = new JSONArray();
@@ -169,7 +176,8 @@ public class EjUtils {
     }
 
     @ToolsMethod("包含值筛选")
-    public JSONArray contains(@ToolsParams("待筛选数据") Object params, @ToolsParams("筛选字段") String fieldName, @ToolsParams("筛选所需要包含的值") String value) {
+    public JSONArray contains(@ToolsParams("待筛选数据") Object params, @ToolsParams("筛选字段") String fieldName,
+                              @ToolsParams("筛选所需要包含的值") String value) {
         if (value == null) {
             throw new RuntimeException("不能通过包含值为null进行筛选，建议使用equal方法！");
         }
@@ -278,10 +286,10 @@ public class EjUtils {
     private static final String SQL_SPLIT_N = ",\n";
 
     @ToolsMethod("转化成SQL")
-    private String toSQL(@ToolsParams("待转数据") Object params,
-                         @ToolsParams("数据表名") String tableName,
-                         @ToolsParams("自增字段名") String autoIncrementKey,
-                         @ToolsParams("自增字段起始值") Long autoIncrementStartValue) {
+    public String toSQL(@ToolsParams("待转数据") Object params,
+                        @ToolsParams("数据表名") String tableName,
+                        @ToolsParams("自增字段名") String autoIncrementKey,
+                        @ToolsParams("自增字段起始值") Long autoIncrementStartValue) {
         Set<String> keys = keys(params);
         if (keys == null || keys.isEmpty()) {
             return null;
@@ -309,7 +317,8 @@ public class EjUtils {
                 if (key.equals(autoIncrementKey)) {
                     singleValues.add(String.valueOf(autoIncrementStartValue++));
                 } else {
-                    singleValues.add(jsonObject.get(key) == null ? null : String.format(SQL_VALUE_TEMP, jsonObject.get(key).toString()));
+                    singleValues.add(jsonObject.get(key) == null ? null : String.format(SQL_VALUE_TEMP,
+                            jsonObject.get(key).toString()));
                 }
             }
             String value = String.join(SQL_SPLIT, singleValues);
@@ -361,5 +370,29 @@ public class EjUtils {
             throw new RuntimeException("不支持该数据类型[" + params.getClass().getName() + "]的转化！");
         }
         return keys;
+    }
+
+
+    @ToolsMethod("字符串提取")
+    public JSONArray substring(@ToolsParams("待提取数据") Object params,
+                               @ToolsParams("目标数据前缀(不含)") String beginStr,
+                               @ToolsParams("目标数据后缀(不含)") String endStr) {
+        if (params == null) {
+            return null;
+        }
+        String value = params.toString();
+        JSONArray jsonArray = new JSONArray();
+        int blen = beginStr == null ? 0 : beginStr.length();
+        int elen = endStr == null ? 0 : endStr.length();
+        int bidx = -1;
+        int eidx = -1;
+        while (eidx < value.length() && (bidx = beginStr == null ? 0 : value.indexOf(beginStr, eidx + elen)) >= 0) {
+            eidx = endStr == null ? value.length() - 1 : value.indexOf(endStr, bidx + blen);
+            if (eidx < 0) {
+                break;
+            }
+            jsonArray.add(value.substring(bidx + blen, eidx));
+        }
+        return jsonArray;
     }
 }
